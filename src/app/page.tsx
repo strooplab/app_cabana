@@ -1,5 +1,15 @@
-import React, { useState, useEffect, FormEvent } from 'react';
-import { Download, Shield, Smartphone, FolderOpen, CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
+"use client";
+import React, { useState, useEffect } from "react";
+import {
+  Download,
+  Shield,
+  Smartphone,
+  FolderOpen,
+  CheckCircle,
+  AlertCircle,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 
 interface AppVersion {
   id: number;
@@ -13,94 +23,94 @@ interface AppVersion {
   created_at: string;
 }
 
-type DownloadType = 'apk' | 'folder';
-type DownloadStatus = 'downloading' | 'completed' | 'error' | null;
+type DownloadType = "apk" | "folder";
+type DownloadStatus = "downloading" | "completed" | "error" | null;
 
 const AppDistributionPage: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [password, setPassword] = useState<string>('');
+  const [password, setPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string>("");
   const [appVersion, setAppVersion] = useState<AppVersion | null>(null);
-  const [downloadStatus, setDownloadStatus] = useState<Record<DownloadType, DownloadStatus>>({
-    apk: null,
-    folder: null,
-  });
+  const [downloadStatus, setDownloadStatus] = useState<
+    Record<DownloadType, DownloadStatus>
+  >({ apk: null, folder: null });
 
-  // Simular datos de la versión actual (en producción vendrían de Supabase)
+  // Simulación de datos (en producción vendrían de Supabase)
   const mockAppVersion: AppVersion = {
     id: 1,
-    version_name: '1.2.3',
+    version_name: "1.2.3",
     version_code: 123,
-    apk_url: 'https://example.com/app-v1.2.3.apk',
-    folder_url: 'https://example.com/app-files-v1.2.3.zip',
+    apk_url: "https://example.com/app-v1.2.3.apk",
+    folder_url: "https://example.com/app-files-v1.2.3.zip",
     apk_size: 15728640, // 15MB
     folder_size: 5242880, // 5MB
     release_notes:
-      '• Corrección de errores críticos\n• Mejoras de rendimiento\n• Nueva funcionalidad de sincronización\n• Actualización de dependencias de seguridad',
-    created_at: '2024-03-15T10:30:00Z',
+      "• Corrección de errores críticos\n• Mejoras de rendimiento\n• Nueva funcionalidad de sincronización\n• Actualización de dependencias de seguridad",
+    created_at: "2024-03-15T10:30:00Z",
   };
 
   useEffect(() => {
-    const authStatus = localStorage.getItem('app_authenticated');
-    if (authStatus === 'true') {
+    const authStatus = localStorage.getItem("app_authenticated");
+    if (authStatus === "true") {
       setIsAuthenticated(true);
       setAppVersion(mockAppVersion);
     }
   }, []);
 
-  const handleAuth = async (e: FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      if (password === 'demo123') {
+      if (password === "demo123") {
         setIsAuthenticated(true);
-        localStorage.setItem('app_authenticated', 'true');
+        localStorage.setItem("app_authenticated", "true");
         setAppVersion(mockAppVersion);
       } else {
-        setError('Contraseña incorrecta');
+        setError("Contraseña incorrecta");
       }
-    } catch (err) {
-      setError('Error de conexión');
+    } catch {
+      setError("Error de conexión");
     } finally {
       setLoading(false);
     }
   };
 
   const handleDownload = async (type: DownloadType) => {
-    if (!appVersion) return;
-
-    setDownloadStatus((prev) => ({ ...prev, [type]: 'downloading' }));
+    setDownloadStatus((prev) => ({ ...prev, [type]: "downloading" }));
 
     try {
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      const downloadUrl = type === 'apk' ? appVersion.apk_url : appVersion.folder_url;
+      if (!appVersion) throw new Error("No hay versión disponible");
 
-      const link = document.createElement('a');
+      const downloadUrl =
+        type === "apk" ? appVersion.apk_url : appVersion.folder_url;
+
+      const link = document.createElement("a");
       link.href = downloadUrl;
       link.download =
-        type === 'apk'
+        type === "apk"
           ? `app-v${appVersion.version_name}.apk`
           : `app-files-v${appVersion.version_name}.zip`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
-      setDownloadStatus((prev) => ({ ...prev, [type]: 'completed' }));
+      setDownloadStatus((prev) => ({ ...prev, [type]: "completed" }));
 
       await registerDownload(type);
 
       setTimeout(() => {
         setDownloadStatus((prev) => ({ ...prev, [type]: null }));
       }, 3000);
-    } catch (err) {
-      setDownloadStatus((prev) => ({ ...prev, [type]: 'error' }));
+    } catch {
+      setDownloadStatus((prev) => ({ ...prev, [type]: "error" }));
       setTimeout(() => {
         setDownloadStatus((prev) => ({ ...prev, [type]: null }));
       }, 3000);
@@ -108,48 +118,51 @@ const AppDistributionPage: React.FC = () => {
   };
 
   const registerDownload = async (type: DownloadType) => {
-    if (!appVersion) return;
-    console.log(`Registrando descarga de ${type} para la versión ${appVersion.version_name}`);
+    if (appVersion) {
+      console.log(
+        `Registrando descarga de ${type} para la versión ${appVersion.version_name}`
+      );
+    }
   };
 
   const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 B';
+    if (bytes === 0) return "0 B";
     const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const sizes = ["B", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   };
 
   const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return new Date(dateString).toLocaleDateString("es-ES", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const getButtonContent = (type: DownloadType) => {
     const status = downloadStatus[type];
-    const isApk = type === 'apk';
+    const isApk = type === "apk";
 
     switch (status) {
-      case 'downloading':
+      case "downloading":
         return (
           <>
             <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
             Descargando...
           </>
         );
-      case 'completed':
+      case "completed":
         return (
           <>
             <CheckCircle className="h-4 w-4" />
             Descargado
           </>
         );
-      case 'error':
+      case "error":
         return (
           <>
             <AlertCircle className="h-4 w-4" />
@@ -159,8 +172,12 @@ const AppDistributionPage: React.FC = () => {
       default:
         return (
           <>
-            {isApk ? <Smartphone className="h-4 w-4" /> : <FolderOpen className="h-4 w-4" />}
-            Descargar {isApk ? 'APK' : 'Archivos'}
+            {isApk ? (
+              <Smartphone className="h-4 w-4" />
+            ) : (
+              <FolderOpen className="h-4 w-4" />
+            )}
+            Descargar {isApk ? "APK" : "Archivos"}
           </>
         );
     }
@@ -176,7 +193,9 @@ const AppDistributionPage: React.FC = () => {
                 <Shield className="h-8 w-8 text-white mr-3" />
                 <h1 className="text-2xl font-bold text-white">Acceso Seguro</h1>
               </div>
-              <p className="text-blue-100 text-center mt-2">Distribución Interna de Aplicaciones</p>
+              <p className="text-blue-100 text-center mt-2">
+                Distribución Interna de Aplicaciones
+              </p>
             </div>
 
             <div className="px-8 py-6">
@@ -190,20 +209,26 @@ const AppDistributionPage: React.FC = () => {
                   </label>
                   <div className="relative">
                     <input
-                      type={showPassword ? 'text' : 'password'}
+                      type={showPassword ? "text" : "password"}
                       id="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                       placeholder="Ingresa tu contraseña"
-                      onKeyDown={(e) => e.key === 'Enter' && handleAuth(e)}
+                      onKeyDown={(e) =>
+                        e.key === "Enter" ? handleAuth(e as any) : null
+                      }
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -232,7 +257,8 @@ const AppDistributionPage: React.FC = () => {
 
               <div className="mt-6 text-center">
                 <p className="text-xs text-gray-500">
-                  Demo: usa la contraseña <code className="bg-gray-100 px-1 rounded">demo123</code>
+                  Demo: usa la contraseña{" "}
+                  <code className="bg-gray-100 px-1 rounded">demo123</code>
                 </p>
               </div>
             </div>
@@ -242,10 +268,193 @@ const AppDistributionPage: React.FC = () => {
     );
   }
 
-  // 🔽 Si está autenticado, render normal
+  if (!appVersion) return null;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-      {/* ... resto del código sin cambios, ya tipado ... */}W
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center">
+            <Smartphone className="h-8 w-8 text-blue-600 mr-3" />
+            <h1 className="text-2xl font-bold text-gray-900">
+              Distribución de App
+            </h1>
+          </div>
+          <button
+            onClick={() => {
+              setIsAuthenticated(false);
+              localStorage.removeItem("app_authenticated");
+            }}
+            className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            Cerrar Sesión
+          </button>
+        </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        {/* Información de la versión */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-8">
+          <div className="bg-gradient-to-r from-green-500 to-emerald-500 px-6 py-4">
+            <h2 className="text-xl font-bold text-white">Versión Actual</h2>
+          </div>
+
+          <div className="p-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <div className="space-y-3">
+                  <div>
+                    <span className="text-sm font-medium text-gray-500">
+                      Versión
+                    </span>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {appVersion.version_name}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-gray-500">
+                      Fecha de publicación
+                    </span>
+                    <p className="text-gray-700">
+                      {formatDate(appVersion.created_at)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-sm font-medium text-gray-500">
+                  Notas de la versión
+                </span>
+                <div className="mt-2 bg-gray-50 rounded-lg p-4">
+                  <pre className="text-sm text-gray-700 whitespace-pre-line">
+                    {appVersion.release_notes}
+                  </pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Botones de descarga */}
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Descarga APK */}
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-500 to-indigo-500 px-6 py-4">
+              <h3 className="text-lg font-bold text-white flex items-center">
+                <Smartphone className="h-5 w-5 mr-2" />
+                Aplicación APK
+              </h3>
+            </div>
+
+            <div className="p-6">
+              <div className="mb-4">
+                <p className="text-gray-600 text-sm mb-2">
+                  Archivo de instalación de la aplicación para Android
+                </p>
+                <p className="text-xs text-gray-500">
+                  Tamaño: {formatFileSize(appVersion.apk_size)}
+                </p>
+              </div>
+
+              <button
+                onClick={() => handleDownload("apk")}
+                disabled={downloadStatus.apk === "downloading"}
+                className={`w-full py-3 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
+                  downloadStatus.apk === "completed"
+                    ? "bg-green-600 hover:bg-green-700 text-white"
+                    : downloadStatus.apk === "error"
+                    ? "bg-red-600 hover:bg-red-700 text-white"
+                    : "bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                }`}
+              >
+                {getButtonContent("apk")}
+              </button>
+            </div>
+          </div>
+
+          {/* Descarga Carpeta */}
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+            <div className="bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-4">
+              <h3 className="text-lg font-bold text-white flex items-center">
+                <FolderOpen className="h-5 w-5 mr-2" />
+                Archivos Adicionales
+              </h3>
+            </div>
+
+            <div className="p-6">
+              <div className="mb-4">
+                <p className="text-gray-600 text-sm mb-2">
+                  Carpeta con archivos de configuración y recursos
+                </p>
+                <p className="text-xs text-gray-500">
+                  Tamaño: {formatFileSize(appVersion.folder_size)}
+                </p>
+              </div>
+
+              <button
+                onClick={() => handleDownload("folder")}
+                disabled={downloadStatus.folder === "downloading"}
+                className={`w-full py-3 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
+                  downloadStatus.folder === "completed"
+                    ? "bg-green-600 hover:bg-green-700 text-white"
+                    : downloadStatus.folder === "error"
+                    ? "bg-red-600 hover:bg-red-700 text-white"
+                    : "bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                }`}
+              >
+                {getButtonContent("folder")}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Instrucciones de instalación */}
+        <div className="mt-8 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+          <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4">
+            <h3 className="text-lg font-bold text-white">
+              Instrucciones de Instalación
+            </h3>
+          </div>
+
+          <div className="p-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-3">
+                  📱 Para instalar el APK:
+                </h4>
+                <ol className="text-sm text-gray-600 space-y-2 list-decimal list-inside">
+                  <li>Descarga el archivo APK</li>
+                  <li>Habilita "Fuentes desconocidas" en Configuración</li>
+                  <li>Abre el archivo descargado</li>
+                  <li>Confirma la instalación</li>
+                </ol>
+              </div>
+
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-3">
+                  📁 Para los archivos adicionales:
+                </h4>
+                <ol className="text-sm text-gray-600 space-y-2 list-decimal list-inside">
+                  <li>Descarga el archivo ZIP</li>
+                  <li>Extrae en la carpeta raíz del dispositivo</li>
+                  <li>Los archivos se colocarán automáticamente</li>
+                  <li>Reinicia la aplicación si es necesario</li>
+                </ol>
+              </div>
+            </div>
+
+            <div className="mt-6 bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <p className="text-amber-800 text-sm">
+                <strong>Importante:</strong> Si ya tienes una versión anterior
+                instalada, los nuevos archivos reemplazarán automáticamente los
+                existentes.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

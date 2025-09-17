@@ -1,12 +1,31 @@
 // pages/api/download.js
-import jwt from 'jsonwebtoken';
 import { supabase } from '@/lib/supabase';
+import bcrypt from 'bcryptjs';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
+  const { password } = req.body;
+
+  // Leer la contraseña hasheada desde la BD
+  const { data, error } = await supabase
+    .from('auth_config')
+    .select('password_hash')
+    .eq('id', 1)
+    .single();
+
+  if (error || !data) {
+    return res.status(500).json({ message: 'Error leyendo configuración' });
+  }
+
+  const isValid = await bcrypt.compare(password, data.password_hash);
+
+  if (!isValid) {
+    return res.status(401).json({ message: 'Invalid password' });
+  }
+  
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) {
     return res.status(401).json({ message: 'No token provided' });

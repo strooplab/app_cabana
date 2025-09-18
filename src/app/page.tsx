@@ -23,7 +23,7 @@ interface AppVersion {
   created_at: string;
 }
 
-type DownloadType = "apk" | "folder";
+type DownloadType = "apk" | "zip" | "folder";
 type DownloadStatus = "downloading" | "completed" | "error" | null;
 
 const AppDistributionPage: React.FC = () => {
@@ -35,27 +35,30 @@ const AppDistributionPage: React.FC = () => {
   const [appVersion, setAppVersion] = useState<AppVersion | null>(null);
   const [downloadStatus, setDownloadStatus] = useState<
     Record<DownloadType, DownloadStatus>
-  >({ apk: null, folder: null });
+  >({ apk: null, folder: null, zip: null });
 
-  // Simulación de datos (en producción vendrían de Supabase)
-  const mockAppVersion: AppVersion = {
-    id: 1,
-    version_name: "1.2.3",
-    version_code: 123,
-    apk_url: "https://example.com/app-v1.2.3.apk",
-    folder_url: "https://example.com/app-files-v1.2.3.zip",
-    apk_size: 15728640, // 15MB
-    folder_size: 5242880, // 5MB
-    release_notes:
-      "• Corrección de errores críticos\n• Mejoras de rendimiento\n• Nueva funcionalidad de sincronización\n• Actualización de dependencias de seguridad",
-    created_at: "2024-03-15T10:30:00Z",
+  // Traer versión más reciente desde el backend
+  const fetchLatestVersion = async () => {
+    try {
+      const token = localStorage.getItem("app_token");
+      const res = await fetch("/api/version", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) throw new Error("Error obteniendo la versión");
+      const data = await res.json();
+      setAppVersion(data);
+    } catch {
+      setError("No se pudo obtener la versión actual");
+    }
   };
 
   useEffect(() => {
     const authStatus = localStorage.getItem("app_authenticated");
     if (authStatus === "true") {
       setIsAuthenticated(true);
-      setAppVersion(mockAppVersion);
+      fetchLatestVersion();
     }
   }, []);
 
@@ -65,14 +68,20 @@ const AppDistributionPage: React.FC = () => {
     setError("");
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const res = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
 
-      if (password === "demo123") {
+      if (!res.ok) {
+        setError("Contraseña incorrecta");
+      } else {
+        const data = await res.json();
         setIsAuthenticated(true);
         localStorage.setItem("app_authenticated", "true");
-        setAppVersion(mockAppVersion);
-      } else {
-        setError("Contraseña incorrecta");
+        localStorage.setItem("app_token", data.token); // 👈 guarda el JWT
+        fetchLatestVersion();
       }
     } catch {
       setError("Error de conexión");
@@ -82,18 +91,32 @@ const AppDistributionPage: React.FC = () => {
   };
 
   const handleDownload = async (type: DownloadType) => {
+    if (!appVersion) return;
+
     setDownloadStatus((prev) => ({ ...prev, [type]: "downloading" }));
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const token = localStorage.getItem("app_token");
+      const res = await fetch("/api/download", {
+        method: "POST",
+        headers: {
+           "Content-Type": "application/json" 
+          , Authorization: `Bearer ${token}`,
+          },
+        body: JSON.stringify({
+          password,
+          version_id: appVersion.id,
+          download_type: type,
+        }),
+      });
 
-      if (!appVersion) throw new Error("No hay versión disponible");
+      if (!res.ok) throw new Error("Error en descarga");
 
-      const downloadUrl =
-        type === "apk" ? appVersion.apk_url : appVersion.folder_url;
+      const { download_url } = await res.json();
 
+      // Lanzar descarga real
       const link = document.createElement("a");
-      link.href = downloadUrl;
+      link.href = download_url;
       link.download =
         type === "apk"
           ? `app-v${appVersion.version_name}.apk`
@@ -103,9 +126,6 @@ const AppDistributionPage: React.FC = () => {
       document.body.removeChild(link);
 
       setDownloadStatus((prev) => ({ ...prev, [type]: "completed" }));
-
-      await registerDownload(type);
-
       setTimeout(() => {
         setDownloadStatus((prev) => ({ ...prev, [type]: null }));
       }, 3000);
@@ -114,14 +134,6 @@ const AppDistributionPage: React.FC = () => {
       setTimeout(() => {
         setDownloadStatus((prev) => ({ ...prev, [type]: null }));
       }, 3000);
-    }
-  };
-
-  const registerDownload = async (type: DownloadType) => {
-    if (appVersion) {
-      console.log(
-        `Registrando descarga de ${type} para la versión ${appVersion.version_name}`
-      );
     }
   };
 
@@ -216,7 +228,7 @@ const AppDistributionPage: React.FC = () => {
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                       placeholder="Ingresa tu contraseña"
                       onKeyDown={(e) =>
-                        e.key === "Enter" ? handleAuth(e as any) : null
+                        e.key === "Enter" ? handleAuth(e as never) : null
                       }
                     />
                     <button
@@ -254,13 +266,6 @@ const AppDistributionPage: React.FC = () => {
                   )}
                 </button>
               </div>
-
-              <div className="mt-6 text-center">
-                <p className="text-xs text-gray-500">
-                  Demo: usa la contraseña{" "}
-                  <code className="bg-gray-100 px-1 rounded">demo123</code>
-                </p>
-              </div>
             </div>
           </div>
         </div>
@@ -285,6 +290,8 @@ const AppDistributionPage: React.FC = () => {
             onClick={() => {
               setIsAuthenticated(false);
               localStorage.removeItem("app_authenticated");
+              localStorage.removeItem("app_token"); // 👈 limpiar token
+              setAppVersion(null);
             }}
             className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
           >
@@ -406,51 +413,6 @@ const AppDistributionPage: React.FC = () => {
               >
                 {getButtonContent("folder")}
               </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Instrucciones de instalación */}
-        <div className="mt-8 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-          <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4">
-            <h3 className="text-lg font-bold text-white">
-              Instrucciones de Instalación
-            </h3>
-          </div>
-
-          <div className="p-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-3">
-                  📱 Para instalar el APK:
-                </h4>
-                <ol className="text-sm text-gray-600 space-y-2 list-decimal list-inside">
-                  <li>Descarga el archivo APK</li>
-                  <li>Habilita "Fuentes desconocidas" en Configuración</li>
-                  <li>Abre el archivo descargado</li>
-                  <li>Confirma la instalación</li>
-                </ol>
-              </div>
-
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-3">
-                  📁 Para los archivos adicionales:
-                </h4>
-                <ol className="text-sm text-gray-600 space-y-2 list-decimal list-inside">
-                  <li>Descarga el archivo ZIP</li>
-                  <li>Extrae en la carpeta raíz del dispositivo</li>
-                  <li>Los archivos se colocarán automáticamente</li>
-                  <li>Reinicia la aplicación si es necesario</li>
-                </ol>
-              </div>
-            </div>
-
-            <div className="mt-6 bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <p className="text-amber-800 text-sm">
-                <strong>Importante:</strong> Si ya tienes una versión anterior
-                instalada, los nuevos archivos reemplazarán automáticamente los
-                existentes.
-              </p>
             </div>
           </div>
         </div>

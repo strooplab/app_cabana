@@ -1,6 +1,6 @@
-const bcrypt = require('bcryptjs');
-const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config();
+import bcrypt from 'bcryptjs';
+import createClient from '@supabase/supabase-js';
+import 'dotenv/config';
 
 async function setupAdminPassword() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

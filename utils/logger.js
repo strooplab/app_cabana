@@ -1,10 +1,10 @@
 // utils/logger.js
-const winston = require('winston');
+import { createLogger, format as _format, transports as _transports } from 'winston';
 
-const logger = winston.createLogger({
-    format: winston.format.json(),
+const logger = createLogger({
+    format: _format.json(),
     transports: [
-    new winston.transports.File({ filename: 'access.log' })
+    new _transports.File({ filename: 'access.log' })
     ]
 });
 

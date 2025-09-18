@@ -1,29 +1,15 @@
-const fs = require('fs');
-const path = require('path');
-const FormData = require('form-data');
-const fetch = require('node-fetch');
-const archiver = require('archiver'); // Para comprimir la carpeta
-require('dotenv').config();
+import fs from 'fs';
+import path from 'path';
+import FormData from 'form-data';
+import fetch from 'node-fetch';
+import dotenv from 'dotenv';
+dotenv.config();
 
 class AppVersionUploader {
   constructor() {
     this.apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
     this.adminKey = process.env.ADMIN_API_KEY;
     this.sourceDirectory = process.env.SOURCE_DIRECTORY;
-  }
-
-  async zipFolder(folderPath, outputZip) {
-    return new Promise((resolve, reject) => {
-      const output = fs.createWriteStream(outputZip);
-      const archive = archiver('zip', { zlib: { level: 9 } });
-
-      output.on('close', () => resolve(outputZip));
-      archive.on('error', reject);
-
-      archive.pipe(output);
-      archive.directory(folderPath, false);
-      archive.finalize();
-    });
   }
 
   async uploadVersion(versionData) {
@@ -65,17 +51,17 @@ class AppVersionUploader {
     try {
       const files = fs.readdirSync(this.sourceDirectory);
 
-      // Buscar .apk
+      // Buscar APK
       const apkFiles = files.filter(file => file.endsWith('.apk'));
       if (apkFiles.length === 0) {
         console.log('No APK files found in source directory');
         return null;
       }
 
-      // Buscar carpeta ingenio_la_cabana
-      const folderPath = path.join(this.sourceDirectory, 'ingenio_la_cabana');
-      if (!fs.existsSync(folderPath) || !fs.lstatSync(folderPath).isDirectory()) {
-        console.log('No folder "ingenio_la_cabana" found');
+      // Buscar zip de la carpeta
+      const folderZip = files.find(file => file === 'ingenio_la_cabana.zip');
+      if (!folderZip) {
+        console.log('No zip "ingenio_la_cabana.zip" found');
         return null;
       }
 
@@ -88,11 +74,9 @@ class AppVersionUploader {
         }))
         .sort((a, b) => b.mtime - a.mtime)[0];
 
-      // Comprimir carpeta
-      const folderZipPath = path.join(this.sourceDirectory, 'ingenio_la_cabana.zip');
-      await this.zipFolder(folderPath, folderZipPath);
+      const folderZipPath = path.join(this.sourceDirectory, folderZip);
 
-      // Extraer versión del nombre
+      // Extraer versión del nombre del APK
       const versionMatch = latestApk.name.match(/v?(\d+\.\d+\.\d+)/);
       const versionName = versionMatch ? versionMatch[1] : '1.0.0';
       const versionCode = this.generateVersionCode(versionName);
@@ -104,7 +88,7 @@ class AppVersionUploader {
         apkPath: latestApk.path,
         folderZipPath,
         apkFile: latestApk.name,
-        folderFile: 'ingenio_la_cabana.zip'
+        folderFile: folderZip
       };
 
     } catch (error) {
@@ -142,7 +126,7 @@ class AppVersionUploader {
 
       console.log(`📱 Nueva versión encontrada: ${newVersion.versionName}`);
       console.log(`📦 APK: ${newVersion.apkFile}`);
-      console.log(`📁 Carpeta: ${newVersion.folderFile}`);
+      console.log(`📁 Carpeta ZIP: ${newVersion.folderFile}`);
 
       const exists = await this.checkIfVersionExists(newVersion.versionName);
       if (exists) {

@@ -1,3 +1,4 @@
+// scripts/upload-new-version.js
 import fs from 'fs';
 import path from 'path';
 import FormData from 'form-data';
@@ -7,8 +8,8 @@ dotenv.config();
 
 class AppVersionUploader {
   constructor() {
-    this.apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-    this.adminKey = process.env.ADMIN_API_KEY;
+    this.apiUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
+    this.adminKey = process.env.DB_USER;
     this.sourceDirectory = process.env.SOURCE_DIRECTORY;
   }
 

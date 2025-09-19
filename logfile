@@ -1,0 +1,19 @@
+2025-09-19 10:11:26.154 -05 [24744] LOG:  iniciando PostgreSQL 17.6 on x86_64-windows, compiled by msvc-19.44.35213, 64-bit
+2025-09-19 10:11:26.181 -05 [24744] LOG:  escuchando en la dirección IPv6 «::1», port 5432
+2025-09-19 10:11:26.181 -05 [24744] LOG:  escuchando en la dirección IPv4 «127.0.0.1», port 5432
+2025-09-19 10:11:26.625 -05 [2696] LOG:  el sistema de bases de datos fue interrumpido; última vez en funcionamiento en 2025-09-18 14:23:40 -05
+2025-09-19 10:11:30.978 -05 [2696] LOG:  el sistema de bases de datos no fue apagado apropiadamente; se está efectuando la recuperación automática
+2025-09-19 10:11:30.994 -05 [2696] LOG:  redo comienza en 0/1A94E68
+2025-09-19 10:11:30.994 -05 [2696] LOG:  largo de registro no válido en 0/1A94F70: se esperaba al menos 24, se obtuvo 0
+2025-09-19 10:11:30.995 -05 [2696] LOG:  redo listo en 0/1A94F38 utilización del sistema: CPU: usuario: 0.00 s, sistema: 0.00 s, transcurrido: 0.00 s
+2025-09-19 10:11:31.013 -05 [19860] LOG:  empezando checkpoint: end-of-recovery immediate wait
+2025-09-19 10:11:31.051 -05 [19860] LOG:  checkpoint completo: escritos 3 búfers (0.0%); 0 archivos WAL añadidos, 0 eliminados, 0 reciclados; write=0.011 s, sync=0.006 s, total=0.046 s; archivos sincronizados=2, más largo=0.003 s, promedio=0.003 s; distancia=0 kB, estimación=0 kB; lsn=0/1A94F70, lsn de redo=0/1A94F70
+2025-09-19 10:11:31.160 -05 [24744] LOG:  el sistema de bases de datos está listo para aceptar conexiones
+2025-09-19 10:13:45.418 -05 [24744] LOG:  se recibió SIGHUP, volviendo a cargar archivos de configuración
+2025-09-19 10:16:08.584 -05 [19380] ERROR:  la base de datos Â«db_appcabanaÂ» estÃ¡ siendo utilizada por otros usuarios
+2025-09-19 10:16:08.584 -05 [19380] DETALLE:  Hay 1 otra sesiÃ³n usando la base de datos.
+2025-09-19 10:16:08.584 -05 [19380] SENTENCIA:  ALTER DATABASE db_appcabana RENAME TO midb;
+2025-09-19 10:16:15.321 -05 [6496] LOG:  no se pudo recibir datos del cliente: An existing connection was forcibly closed by the remote host.
+	
+2025-09-19 10:16:31.442 -05 [19860] LOG:  empezando checkpoint: time
+2025-09-19 10:16:32.021 -05 [19860] LOG:  checkpoint completo: escritos 6 búfers (0.0%); 0 archivos WAL añadidos, 0 eliminados, 0 reciclados; write=0.554 s, sync=0.006 s, total=0.582 s; archivos sincronizados=6, más largo=0.002 s, promedio=0.001 s; distancia=4 kB, estimación=4 kB; lsn=0/1A96230, lsn de redo=0/1A961D8

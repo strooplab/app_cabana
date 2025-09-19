@@ -14,7 +14,10 @@
     "cron-check": "node scripts/cron-version-check.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.892.0",
+    "@aws-sdk/s3-request-presigner": "^3.892.0",
     "@supabase/supabase-js": "^2.57.4",
+    "aws-sdk": "^2.1692.0",
     "bcryptjs": "^3.0.2",
     "formidable": "^3.5.4",
     "jsonwebtoken": "^9.0.2",

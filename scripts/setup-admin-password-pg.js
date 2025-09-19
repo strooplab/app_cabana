@@ -1,3 +1,4 @@
+// scripts/setup-admin-password-pg.js
 import bcrypt from 'bcryptjs';
 import pool from '../lib/db.js';
 import readline from 'readline';

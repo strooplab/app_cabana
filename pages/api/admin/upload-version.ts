@@ -4,6 +4,8 @@ import formidable from 'formidable';
 import fs from 'fs';
 import path from 'path';
 import { Pool } from 'pg';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import r2 from '../../../lib/r2';
 
 export const config = {
   api: { bodyParser: false },
@@ -12,7 +14,7 @@ export const config = {
 const pool = new Pool({
   user: process.env.DB_USER || 'postgres',
   host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'mi_base',
+  database: process.env.DB_NAME || 'midb',
   password: process.env.DB_PASS || '1234',
   port: parseInt(process.env.DB_PORT || '5432', 10),
 });
@@ -54,18 +56,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     fs.mkdirSync(apkDir, { recursive: true });
     fs.mkdirSync(folderDir, { recursive: true });
 
-    const apkFileName = `app-v${version_name}.apk`;
-    const folderFileName = `app-files-v${version_name}.zip`;
+    const apkFileStream = fs.createReadStream(apkFile.filepath);
+    const apkKey = `apk/app-v${version_name}.apk`;
+    await r2.send(new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME!,
+      Key: apkKey,
+      Body: apkFileStream,
+      ContentType: "application/vnd.android.package-archive",
+    }));
 
-    const apkPath = path.join(apkDir, apkFileName);
-    const folderPath = path.join(folderDir, folderFileName);
+    // Subir ZIP
+    const folderFileStream = fs.createReadStream(folderFile.filepath);
+    const folderKey = `folders/app-files-v${version_name}.zip`;
+    await r2.send(new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME!,
+      Key: folderKey,
+      Body: folderFileStream,
+      ContentType: "application/zip",
+    }));
 
-    fs.renameSync(apkFile.filepath, apkPath);
-    fs.renameSync(folderFile.filepath, folderPath);
-
-    // URLs accesibles públicamente
-    const apkUrl = `/uploads/apk/${apkFileName}`;
-    const folderUrl = `/uploads/folders/${folderFileName}`;
+    // URLs públicas
+    const apkUrl = `https://${process.env.R2_PUBLIC_DOMAIN}/${apkKey}`;
+    const folderUrl = `https://${process.env.R2_PUBLIC_DOMAIN}/${folderKey}`;
 
     // Desactivar versiones previas
     await pool.query(`UPDATE app_versions SET is_active = false WHERE is_active = true`);

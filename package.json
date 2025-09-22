@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
+    "build": "next build --turbopack --no-lint",
     "start": "next start",
     "lint": "eslint",
     "setup-password": "node scripts/setup-admin-password-pg.js",

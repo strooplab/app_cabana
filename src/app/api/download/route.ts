@@ -3,19 +3,9 @@ import 'dotenv/config';
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import { Pool } from "pg";
+import pool from "@/lib/db";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-
-// 🔹 Conexión a PostgreSQL (Render)
-const pool = new Pool({
-  user: process.env.DB_USER || "postgres",
-  host: process.env.DB_HOST || "localhost",
-  database: process.env.DB_NAME || "midb",
-  password: process.env.DB_PASSWORD || "1234",
-  port: parseInt(process.env.DB_PORT || "5432", 10),
-  ssl: { rejectUnauthorized: false }, // Render requiere SSL
-});
 
 // 🔹 Cliente Cloudflare R2 (S3 compatible)
 const s3 = new S3Client({

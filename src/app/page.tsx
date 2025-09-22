@@ -41,7 +41,7 @@ const AppDistributionPage: React.FC = () => {
   const fetchLatestVersion = async () => {
     try {
       const token = localStorage.getItem("app_token");
-      const res = await fetch("/api/version", {
+      const res = await fetch("/api/versions", {
         headers: {
           Authorization: `Bearer ${token}`,
         },

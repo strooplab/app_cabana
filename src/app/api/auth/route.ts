@@ -1,8 +1,8 @@
 // src/app/api/auth/route.ts
-import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import pool from "../../../lib/db";
 import jwt from "jsonwebtoken";
-import pool from "@/lib/db";
+import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {

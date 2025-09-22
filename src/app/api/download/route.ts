@@ -1,11 +1,12 @@
 // src/app/api/download/route.ts
 import 'dotenv/config';
-import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import pool from "@/lib/db";
+import pool from "../../../lib/db";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { NextRequest, NextResponse } from "next/server";
+
 
 // 🔹 Cliente Cloudflare R2 (S3 compatible)
 const s3 = new S3Client({

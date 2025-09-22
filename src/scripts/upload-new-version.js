@@ -1,15 +1,14 @@
-// scripts/upload-new-version.js
+// src/scripts/upload-new-version.js
+import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 import FormData from 'form-data';
 import fetch from 'node-fetch';
-import dotenv from 'dotenv';
-dotenv.config();
 
 class AppVersionUploader {
   constructor() {
     this.apiUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
-    this.adminKey = process.env.DB_USER;
+    this.adminKey = process.env.ADMIN_KEY || 'admin';
     this.sourceDirectory = process.env.SOURCE_DIRECTORY;
   }
 

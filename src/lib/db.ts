@@ -15,14 +15,29 @@ const poolConfig = connectionString
       ssl: { rejectUnauthorized: false },
     };
 
-// Reusar pool en entornos serverless (Vercel)
+console.log("DB Config in use:", poolConfig); // 👀 revisa qué valores tiene
+
 declare global {
-  // @ts-error
+  // eslint-disable-next-line no-var
   var __pgPool: Pool | undefined;
 }
 
-const pool = global.__pgPool ?? new Pool(poolConfig);
+let pool: Pool;
 
-if (!global.__pgPool) global.__pgPool = pool;
+try {
+  pool = global.__pgPool ?? new Pool(poolConfig);
+
+  if (!global.__pgPool) {
+    global.__pgPool = pool;
+  }
+
+  // prueba inmediata de conexión
+  pool.query("SELECT NOW()")
+    .then(res => console.log("✅ DB connected at:", res.rows[0]))
+    .catch(err => console.error("❌ DB connection failed:", err));
+} catch (err) {
+  console.error("❌ Pool init error:", err);
+  throw err;
+}
 
 export default pool;

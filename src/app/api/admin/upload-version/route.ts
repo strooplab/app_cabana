@@ -1,11 +1,11 @@
 // src/app/api/admin/upload-version/route.ts
-import { NextResponse } from "next/server";
 import formidable from "formidable";
 import { Readable } from "node:stream";
 import type { IncomingMessage } from "http";
 import fs from "fs";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import pool from "@/lib/db";
+import pool from "../../../../lib/db";
+import { NextResponse } from "next/server";
 
 export const runtime = "nodejs"; // 🔹 requerido para usar formidable
 
@@ -25,9 +25,20 @@ export async function POST(req: Request) {
     maxFileSize: 1024 * 1024 * 1024, // 1 GB
   });
 
+  // convertir BodyStream (Web API) → Node.js IncomingMessage
+  function webStreamToNodeReadable(stream: ReadableStream<Uint8Array>) {
+    const reader = stream.getReader();
+    return Readable.from(async function* () {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        yield value;
+      }
+    }());
+  }
+
   try {
-    // convertir BodyStream (Web API) → Node.js IncomingMessage
-    const incoming = Readable.fromWeb(req.body as any) as unknown as IncomingMessage;
+    const incoming = webStreamToNodeReadable(req.body as ReadableStream<Uint8Array>) as unknown as IncomingMessage;
 
     const { fields, files } = await new Promise<{
       fields: formidable.Fields;

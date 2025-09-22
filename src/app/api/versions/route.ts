@@ -1,7 +1,7 @@
 import 'dotenv/config';
-import { NextRequest, NextResponse } from "next/server";
+import pool from "../../../lib/db";
 import jwt from "jsonwebtoken";
-import pool from "@/lib/db";
+import { NextRequest, NextResponse } from "next/server";
 
 // export const runtime = "nodejs";
 

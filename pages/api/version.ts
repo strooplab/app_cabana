@@ -1,15 +1,7 @@
 // pages/api/versions.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import jwt from 'jsonwebtoken';
-import { Pool } from 'pg';
-
-const pool = new Pool({
-  user: process.env.DB_USER || 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'midb',
-  password: process.env.DB_PASSWORD || '1234',
-  port: parseInt(process.env.DB_PORT || '5432', 10),
-});
+import pool from '../../lib/db';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {

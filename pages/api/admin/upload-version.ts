@@ -3,7 +3,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import formidable from 'formidable';
 import fs from 'fs';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import pool from '../../../lib/db';
+import pool from '@/../lib/db';
 
 export const config = { api: { bodyParser: false } };
 

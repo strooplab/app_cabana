@@ -1,7 +1,7 @@
 // pages/api/versions.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import jwt from 'jsonwebtoken';
-import pool from '../../lib/db';
+import pool from '@/../lib/db';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {

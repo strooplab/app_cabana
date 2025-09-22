@@ -35,8 +35,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const version_code = Array.isArray(fields.version_code) ? fields.version_code[0] : fields.version_code;
     const release_notes = Array.isArray(fields.release_notes) ? fields.release_notes[0] : fields.release_notes;
 
-    const apkFile: any = Array.isArray(files.apk_file) ? files.apk_file[0] : files.apk_file;
-    const folderFile: any = Array.isArray(files.folder_file) ? files.folder_file[0] : files.folder_file;
+    const apkFile: formidable.File | undefined = Array.isArray(files.apk_file)
+      ? (files.apk_file[0] as formidable.File | undefined)
+      : (files.apk_file as formidable.File | undefined);
+    const folderFile: formidable.File | undefined = Array.isArray(files.folder_file)
+      ? (files.folder_file[0] as formidable.File | undefined)
+      : (files.folder_file as formidable.File | undefined);
 
     if (!version_name || !version_code || !apkFile || !folderFile) {
       return res.status(400).json({ message: 'Missing required fields or files' });
@@ -58,8 +62,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const apkKey = `releases/${version_name}/${apkFile.originalFilename || apkFile.newFilename}`;
     const zipKey = `releases/${version_name}/${folderFile.originalFilename || folderFile.newFilename}`;
 
-    const apkUrl = await uploadToR2(apkFile.filepath, apkKey, apkFile.mimetype);
-    const zipUrl = await uploadToR2(folderFile.filepath, zipKey, folderFile.mimetype);
+    const apkUrl = await uploadToR2(apkFile.filepath ?? '', apkKey, apkFile.mimetype ?? '');
+    const zipUrl = await uploadToR2(folderFile.filepath ?? '', zipKey, folderFile.mimetype ?? '');
 
     // Desactivar previas e insertar nueva fila en postgres
     await pool.query(`UPDATE app_versions SET is_active = false WHERE is_active = true`);

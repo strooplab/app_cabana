@@ -1,13 +1,9 @@
 // src/app/api/admin/upload-version/route.ts
-import formidable from "formidable";
-import { Readable } from "node:stream";
-import type { IncomingMessage } from "http";
-import fs from "fs";
+import { NextResponse } from "next/server";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import pool from "../../../../lib/db";
-import { NextResponse } from "next/server";
 
-export const runtime = "nodejs"; // 🔹 requerido para usar formidable
+export const runtime = "nodejs"; // aseguramos Node runtime
 
 const s3 = new S3Client({
   region: "auto",
@@ -19,53 +15,15 @@ const s3 = new S3Client({
 });
 
 export async function POST(req: Request) {
-  const form = formidable({
-    uploadDir: "/tmp",
-    keepExtensions: true,
-    maxFileSize: 1024 * 1024 * 1024, // 1 GB
-  });
-
-  // convertir BodyStream (Web API) → Node.js IncomingMessage
-  function webStreamToNodeReadable(stream: ReadableStream<Uint8Array>) {
-    const reader = stream.getReader();
-    return Readable.from(async function* () {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        yield value;
-      }
-    }());
-  }
-
   try {
-    const incoming = webStreamToNodeReadable(req.body as ReadableStream<Uint8Array>) as unknown as IncomingMessage;
+    const formData = await req.formData();
 
-    const { fields, files } = await new Promise<{
-      fields: formidable.Fields;
-      files: formidable.Files;
-    }>((resolve, reject) => {
-      form.parse(incoming, (err, fields, files) =>
-        err ? reject(err) : resolve({ fields, files })
-      );
-    });
+    const version_name = formData.get("version_name")?.toString();
+    const version_code = formData.get("version_code")?.toString();
+    const release_notes = formData.get("release_notes")?.toString() || "";
 
-    const version_name = Array.isArray(fields.version_name)
-      ? fields.version_name[0]
-      : fields.version_name;
-    const version_code = Array.isArray(fields.version_code)
-      ? fields.version_code[0]
-      : fields.version_code;
-    const release_notes = Array.isArray(fields.release_notes)
-      ? fields.release_notes[0]
-      : fields.release_notes;
-
-    const apkFile: formidable.File | undefined = Array.isArray(files.apk_file)
-      ? (files.apk_file[0] as formidable.File | undefined)
-      : (files.apk_file as formidable.File | undefined);
-
-    const folderFile: formidable.File | undefined = Array.isArray(files.folder_file)
-      ? (files.folder_file[0] as formidable.File | undefined)
-      : (files.folder_file as formidable.File | undefined);
+    const apkFile = formData.get("apk_file") as File | null;
+    const folderFile = formData.get("folder_file") as File | null;
 
     if (!version_name || !version_code || !apkFile || !folderFile) {
       return NextResponse.json(
@@ -74,13 +32,14 @@ export async function POST(req: Request) {
       );
     }
 
-    const uploadToR2 = async (localPath: string, key: string, contentType: string) => {
-      const buffer = fs.readFileSync(localPath);
+    // helper para subir a R2
+    const uploadToR2 = async (file: File, key: string) => {
+      const buffer = Buffer.from(await file.arrayBuffer());
       const cmd = new PutObjectCommand({
         Bucket: process.env.R2_BUCKET,
         Key: key,
         Body: buffer,
-        ContentType: contentType || "application/octet-stream",
+        ContentType: file.type || "application/octet-stream",
       });
       await s3.send(cmd);
       return `https://${process.env.R2_BUCKET}.${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${encodeURIComponent(
@@ -88,52 +47,40 @@ export async function POST(req: Request) {
       )}`;
     };
 
-    const apkKey = `releases/${version_name}/${apkFile.originalFilename || apkFile.newFilename}`;
-    const zipKey = `releases/${version_name}/${folderFile.originalFilename || folderFile.newFilename}`;
+    const apkKey = `releases/${version_name}/${apkFile.name}`;
+    const zipKey = `releases/${version_name}/${folderFile.name}`;
 
-    const apkUrl = await uploadToR2(
-      apkFile.filepath ?? "",
-      apkKey,
-      apkFile.mimetype ?? ""
-    );
-    const zipUrl = await uploadToR2(
-      folderFile.filepath ?? "",
-      zipKey,
-      folderFile.mimetype ?? ""
-    );
+    const apkUrl = await uploadToR2(apkFile, apkKey);
+    const zipUrl = await uploadToR2(folderFile, zipKey);
 
+    // desactivar versiones previas
     await pool.query(`UPDATE app_versions SET is_active = false WHERE is_active = true`);
 
+    // insertar nueva versión
     const insertRes = await pool.query(
-      `INSERT INTO app_versions (version_name, version_code, apk_url, folder_url, apk_size, folder_size, release_notes, is_active, created_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,true,NOW()) RETURNING *`,
+      `INSERT INTO app_versions 
+        (version_name, version_code, apk_url, folder_url, apk_size, folder_size, release_notes, is_active, created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,true,NOW()) 
+       RETURNING *`,
       [
         version_name,
-        parseInt(String(version_code), 10),
+        parseInt(version_code, 10),
         apkUrl,
         zipUrl,
         apkFile.size,
         folderFile.size,
-        release_notes || "",
+        release_notes,
       ]
     );
-
-    // limpiar archivos temporales
-    try {
-      fs.unlinkSync(apkFile.filepath);
-    } catch {}
-    try {
-      fs.unlinkSync(folderFile.filepath);
-    } catch {}
 
     return NextResponse.json({
       message: "Version uploaded",
       version: insertRes.rows[0],
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error("Upload error:", err);
     return NextResponse.json(
-      { message: "Internal server error" },
+      { message: "Internal server error", error: err.message },
       { status: 500 }
     );
   }

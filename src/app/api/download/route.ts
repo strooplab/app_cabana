@@ -1,7 +1,7 @@
 // src/app/api/download/route.ts
 import 'dotenv/config';
 import jwt from "jsonwebtoken";
-import pool from "../../../lib/db";
+import pool from "@/lib/db";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { NextRequest, NextResponse } from "next/server";
@@ -37,17 +37,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Invalid token" }, { status: 401 });
     }
     // 🔹 Obtener versión y URL de archivo
-    const column = download_type === "apk" ? "apk_url" : "folder_url";
+    const version_table = process.env.DB_VERSIONS_TABLE;
+    const column1 = process.env.DB_VERSION_COLUMN_1; 
+    const column2 = process.env.DB_VERSION_COLUMN_3;
+    const column3 = process.env.DB_VERSION_COLUMN_4;
     const result = await pool.query(
-      `SELECT ${column} as file_key FROM app_versions WHERE id = $1 LIMIT 1`,
+      `SELECT ${column2}, ${column3}, ${column1} FROM ${version_table} WHERE id = $1 LIMIT 1`,
       [version_id]
     );
 
     if (result.rows.length === 0) {
-      return NextResponse.json({ message: "Version not found" }, { status: 404 });
+      return NextResponse.json({ message: "Version no encontrada" }, { status: 404 });
     }
 
-    const fileKey = result.rows[0].file_key;
+    const { apk_package, zip_package } = result.rows[0];
+    const fileKey = download_type === "apk" ? apk_package : zip_package;
 
     // 🔹 Generar URL firmada en Cloudflare R2
     const command = new GetObjectCommand({
@@ -61,9 +65,16 @@ export async function POST(req: NextRequest) {
     const user_ip =
       req.headers.get("x-forwarded-for") || "unknown";
     const user_agent = req.headers.get("user-agent") || "unknown";
+    const downloads_table = process.env.DB_DOWNLOADS_TABLE;
+    const columns = Array.from({ length: 4 }, (_, i) => {
+      return process.env[`DB_DOWNLOAD_COLUMN_${i + 1}`];
+    });
+    if (columns.some(c => !c)) {
+      throw new Error("Faltan columnas definidas en las variables de entorno")
+    }
 
     await pool.query(
-      `INSERT INTO downloads (version_id, download_type, user_ip, user_agent) 
+      `INSERT INTO ${downloads_table} (${columns.join(", ")}) 
        VALUES ($1, $2, $3, $4)`,
       [version_id, download_type, user_ip, user_agent]
     );

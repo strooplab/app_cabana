@@ -1,18 +1,20 @@
 // src/app/api/auth/route.ts
 import bcrypt from "bcryptjs";
-import pool from "../../../lib/db";
+import pool from "@/lib/db";
 import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
+    const auth_table = process.env.DB_AUTH_TABLE;
+    const column_1 = process.env.DB_AUTH_COLUMN_1;
     const { password } = await req.json();
     if (!password) {
       return NextResponse.json({ message: "Password is required" }, { status: 400 });
     }
 
     const result = await pool.query(
-      `SELECT password_hash FROM auth_config ORDER BY id ASC LIMIT 1`
+      `SELECT ${column_1} FROM ${auth_table} ORDER BY id ASC LIMIT 1`
     );
 
     if (!result.rows.length) {
@@ -28,7 +30,7 @@ export async function POST(req: Request) {
     const token = jwt.sign(
       { role: "admin" },
       process.env.JWT_SECRET as string,
-      { expiresIn: "24h" }
+      { expiresIn: "1h" }
     );
 
     return NextResponse.json({ message: "ok", token });

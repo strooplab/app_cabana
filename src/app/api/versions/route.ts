@@ -1,29 +1,32 @@
 import 'dotenv/config';
-import pool from "../../../lib/db";
+import pool from "@/lib/db";
 import jwt from "jsonwebtoken";
 import { NextRequest, NextResponse } from "next/server";
 
-// export const runtime = "nodejs";
+export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
   const token = authHeader?.replace("Bearer ", "");
 
   if (!token) {
-    return NextResponse.json({ message: "No token provided" }, { status: 401 });
+    return NextResponse.json({ message: "Sin token registrado" }, { status: 401 });
   }
 
   try {
     jwt.verify(token, process.env.JWT_SECRET as string);
   } catch {
-    return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+    return NextResponse.json({ message: "Token inválido" }, { status: 401 });
   }
 
   try {
+    const version_table = process.env.DB_VERSIONS_TABLE;
+    const column_active = process.env.DB_VERSION_COLUMN_8;
+    const column_date = process.env.DB_VERSION_COLUMN_9;
     const result = await pool.query(
-      `SELECT * FROM app_versions
-       WHERE is_active = true
-       ORDER BY created_at DESC
+      `SELECT * FROM ${version_table}
+       WHERE ${column_active} = true
+       ORDER BY ${column_date} DESC
        LIMIT 1`
     );
 

@@ -13,12 +13,14 @@ async function setupAdminPassword() {
     try {
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(password, salt);
+      const auth_table = process.env.DB_AUTH_TABLE;
+      const column = process.env.DB_AUTH_COLUMN_1;
 
       await pool.query(
-        `INSERT INTO auth_config (password_hash) 
+        `INSERT INTO ${auth_table} (${column}) 
          VALUES ($1) 
          ON CONFLICT (id) DO UPDATE 
-         SET password_hash = EXCLUDED.password_hash`,
+         SET ${column} = EXCLUDED.${column}`,
         [hashedPassword]
       );
 

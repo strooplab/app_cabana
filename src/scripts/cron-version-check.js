@@ -1,4 +1,4 @@
-// scripts/cron-version-check.js - Script para ejecutar con cron mensualmente
+// src/scripts/cron-version-check.js - Script para ejecutar con cron mensualmente
 import AppVersionUploader from './upload-new-version.js';
 import cron from 'node-cron';
 

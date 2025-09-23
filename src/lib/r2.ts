@@ -3,7 +3,7 @@ import { S3Client } from "@aws-sdk/client-s3";
 
 const r2 = new S3Client({
   region: "auto",
-  endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
   credentials: {
     accessKeyId: process.env.R2_ACCESS_KEY_ID!,
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
@@ -11,3 +11,8 @@ const r2 = new S3Client({
 });
 
 export default r2;
+
+export function buildR2Url(filename: string, version: string) {
+  return `https://${process.env.R2_BUCKET}.${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/releases/${version}/${encodeURIComponent(filename)}`;
+}
+

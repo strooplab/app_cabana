@@ -24,11 +24,11 @@ class AppVersionUploader {
     }
 
     const form = new FormData();
-    form.append('version_name', versionName);
-    form.append('version_code', versionCode);
-    form.append('release_notes', releaseNotes);
-    form.append('apk_file', fs.createReadStream(apkPath));
-    form.append('folder_file', fs.createReadStream(folderZipPath));
+    form.append(process.env.DB_VERSION_COLUMN_1, versionName);
+    form.append(process.env.DB_VERSION_COLUMN_2, versionCode);
+    form.append(process.env.DB_VERSION_COLUMN_7, releaseNotes);
+    form.append(process.env.DB_VERSION_COLUMN_3, fs.createReadStream(apkPath));
+    form.append(process.env.DB_VERSION_COLUMN_4, fs.createReadStream(folderZipPath));
 
     const response = await fetch(`${this.apiUrl}/api/admin/upload-version`, {
       method: 'POST',
@@ -59,9 +59,9 @@ class AppVersionUploader {
       }
 
       // Buscar zip de la carpeta
-      const folderZip = files.find(file => file === 'ingenio_la_cabana.zip');
+      const folderZip = files.find(file => file.endsWith('.zip'));
       if (!folderZip) {
-        console.log('No zip "ingenio_la_cabana.zip" found');
+        console.log('No zip found');
         return null;
       }
 

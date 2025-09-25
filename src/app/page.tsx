@@ -46,6 +46,13 @@ const AppDistributionPage: React.FC = () => {
           Authorization: `Bearer ${token}`,
         },
       });
+
+      if(res.status === 401){
+        localStorage.removeItem("app_token");
+        window.location.href = "/";
+        throw new Error("Unauthorized - sesión expirada");
+        return;
+      }
       if (!res.ok) throw new Error("Error obteniendo la versión");
       const data = await res.json();
       setAppVersion(data);

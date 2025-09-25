@@ -75,7 +75,8 @@ const AppDistributionPage: React.FC = () => {
       });
 
       if (!res.ok) {
-        setError("Contraseña incorrecta");
+        const error = await res.text();
+        alert(error);
       } else {
         const data = await res.json();
         setIsAuthenticated(true);

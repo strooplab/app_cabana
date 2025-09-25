@@ -41,6 +41,9 @@ export async function POST(req: NextRequest) {
     const column1 = process.env.DB_VERSION_COLUMN_1; 
     const column2 = process.env.DB_VERSION_COLUMN_3;
     const column3 = process.env.DB_VERSION_COLUMN_4;
+    if (!column2 || !column3) {
+      throw new Error("Column names are not defined in environment variables");
+    }
     const result = await pool.query(
       `SELECT ${column2}, ${column3}, ${column1} FROM ${version_table} WHERE id = $1 LIMIT 1`,
       [version_id]
@@ -50,8 +53,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Version no encontrada" }, { status: 404 });
     }
 
-    const { apk_package, zip_package } = result.rows[0];
+    const row = result.rows[0];
+    const apk_package = row[column2 as string];
+    const zip_package = row[column3 as string];
+
     const fileKey = download_type === "apk" ? apk_package : zip_package;
+
+    if (!fileKey) {
+      throw new Error(`Archivo no encontrado. version_id=${version_id}, tipo=${download_type}`);
+    }
+
 
     // 🔹 Generar URL firmada en Cloudflare R2
     const command = new GetObjectCommand({
@@ -67,7 +78,7 @@ export async function POST(req: NextRequest) {
     const user_agent = req.headers.get("user-agent") || "unknown";
     const downloads_table = process.env.DB_DOWNLOADS_TABLE;
     const columns = Array.from({ length: 4 }, (_, i) => {
-      return process.env[`DB_DOWNLOAD_COLUMN_${i + 1}`];
+      return process.env[`DB_DOWNLOADS_COLUMN_${i + 1}`];
     });
     if (columns.some(c => !c)) {
       throw new Error("Faltan columnas definidas en las variables de entorno")

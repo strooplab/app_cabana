@@ -15,8 +15,6 @@ const poolConfig = connectionString
       ssl: { rejectUnauthorized: false },
     };
 
-console.log("DB Config in use:", poolConfig); // 👀 revisa qué valores tiene
-
 declare global {
   // eslint-disable-next-line no-var
   var __pgPool: Pool | undefined;
@@ -30,11 +28,6 @@ try {
   if (!global.__pgPool) {
     global.__pgPool = pool;
   }
-
-  // prueba inmediata de conexión
-  pool.query("SELECT NOW()")
-    .then(res => console.log("✅ DB connected at:", res.rows[0]))
-    .catch(err => console.error("❌ DB connection failed:", err));
 } catch (err) {
   console.error("❌ Pool init error:", err);
   throw err;

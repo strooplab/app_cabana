@@ -8,7 +8,7 @@ import fetch from 'node-fetch';
 class AppVersionUploader {
   constructor() {
     this.apiUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
-    this.adminKey = process.env.ADMIN_KEY || 'admin';
+    this.adminKey = process.env.ADMIN_KEY;
     this.sourceDirectory = process.env.SOURCE_DIRECTORY;
   }
 
@@ -111,7 +111,7 @@ class AppVersionUploader {
   }
 
   async checkIfVersionExists(versionName) {
-    return false; // de momento no verificamos
+    return false; // Inhabilitado para simplificar
   }
 
   async run() {
@@ -147,9 +147,9 @@ class AppVersionUploader {
   }
 }
 
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   const uploader = new AppVersionUploader();
   uploader.run();
 }
 
-module.exports = AppVersionUploader;
+export default AppVersionUploader;

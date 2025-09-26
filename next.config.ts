@@ -8,7 +8,7 @@ const nextConfig = {
   },
   // Opcional: deshabilitar la generación del validador
   experimental: {
-    typedRoutes: false,
+    largePageDataBytes: 128 * 1024 * 1024,
   }
 }
 

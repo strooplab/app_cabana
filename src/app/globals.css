@@ -1,26 +1,181 @@
-@import "tailwindcss";
-
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@reference "tailwindcss";
+/* Variables CSS personalizadas con nueva paleta */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-cream: #f6f1e9;
+  --color-yellow: #ffd93d;
+  --color-orange: #ff9a00;
+  --color-dark: #4f200d;
+  
+  --gradient-primary: linear-gradient(135deg, var(--color-yellow) 0%, var(--color-orange) 100%);
+  --gradient-secondary: linear-gradient(135deg, var(--color-orange) 0%, var(--color-dark) 100%);
+  --gradient-success: linear-gradient(135deg, var(--color-yellow) 0%, var(--color-orange) 100%);
+  --gradient-bg: linear-gradient(135deg, var(--color-cream) 0%, #ffffff 100%);
+  --shadow-card: 0 20px 25px -5px rgba(79, 32, 13, 0.15), 0 10px 10px -5px rgba(79, 32, 13, 0.1);
+  --shadow-button: 0 4px 6px -1px rgba(79, 32, 13, 0.15), 0 2px 4px -1px rgba(79, 32, 13, 0.1);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-cream);
+  color: var(--color-dark);
+}
+
+/* Componentes reutilizables */
+@layer components {
+  .btn-primary {
+    @apply relative overflow-hidden font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-4 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
+    background-image: var(--gradient-primary);
+    color: var(--color-dark);
+  }
+
+  .btn-primary:hover {
+    background-image: linear-gradient(135deg, var(--color-orange) 0%, var(--color-dark) 100%);
+    color: white;
+  }
+
+  .btn-secondary {
+    @apply relative overflow-hidden text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-4 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
+    background-image: var(--gradient-secondary);
+  }
+
+  .btn-secondary:hover {
+    background-image: linear-gradient(135deg, var(--color-dark) 0%, #3a1809 100%);
+  }
+
+  .btn-success {
+    @apply font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg;
+    background-image: linear-gradient(135deg, var(--color-yellow) 0%, var(--color-orange) 100%);
+    color: var(--color-dark);
+  }
+
+  .btn-error {
+    @apply text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300;
+    background-image: linear-gradient(135deg, var(--color-orange) 0%, var(--color-dark) 100%);
+  }
+
+  .card {
+    @apply rounded-2xl border-2 overflow-hidden;
+    background-color: white;
+    border-color: rgba(255, 217, 61, 0.3);
+    box-shadow: var(--shadow-card);
+    backdrop-filter: blur(10px);
+  }
+
+  .card-header {
+    @apply px-6 py-5 border-b-2;
+    background-color: var(--color-cream);
+    border-color: rgba(255, 217, 61, 0.4);
+  }
+
+  .card-header-primary {
+    @apply px-6 py-5;
+    background-image: var(--gradient-primary);
+    color: var(--color-dark);
+  }
+
+  .card-header-success {
+    @apply px-6 py-5 text-white;
+    background-image: linear-gradient(135deg, var(--color-orange) 0%, var(--color-dark) 100%);
+  }
+
+  .card-header-secondary {
+    @apply px-6 py-5 text-white;
+    background-image: var(--gradient-secondary);
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:border-transparent transition-all duration-200 bg-white/90 backdrop-blur-sm;
+    border-color: var(--color-yellow);
+  }
+
+  .input-field:focus {
+    --tw-ring-color: var(--color-orange);
+    border-color: var(--color-orange);
+  }
+
+  .spinner {
+    @apply animate-spin rounded-full h-6 w-6 border-2 border-t-transparent;
+    border-color: var(--color-dark);
+  }
+
+  .gradient-bg {
+    background: linear-gradient(135deg, var(--color-cream) 0%, var(--color-yellow) 50%, #ffffff 100%);
+    background-size: 400% 400%;
+    animation: gradientShift 8s ease infinite;
+  }
+
+  .glass-effect {
+    @apply backdrop-blur-md border-2;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-color: rgba(255, 217, 61, 0.4);
+  }
+}
+
+/* Animaciones personalizadas - mantienen igual */
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-fadeInUp { animation: fadeInUp 0.6s ease-out forwards; }
+.animate-slideInRight { animation: slideInRight 0.6s ease-out forwards; }
+.animate-pulse-slow { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 25px 50px -12px rgba(79, 32, 13, 0.25);
+}
+
+/* Utilidades adicionales */
+.bg-cream { background-color: var(--color-cream); }
+.bg-yellow { background-color: var(--color-yellow); }
+.bg-orange { background-color: var(--color-orange); }
+.bg-dark { background-color: var(--color-dark); }
+
+.text-cream { color: var(--color-cream); }
+.text-yellow { color: var(--color-yellow); }
+.text-orange { color: var(--color-orange); }
+.text-dark { color: var(--color-dark); }
+
+.border-yellow { border-color: var(--color-yellow); }
+.border-orange { border-color: var(--color-orange); }
+.border-dark { border-color: var(--color-dark); }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .card { @apply mx-4; }
+  .btn-primary, .btn-secondary { @apply py-4 text-base; }
 }

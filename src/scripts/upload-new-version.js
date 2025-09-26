@@ -2,12 +2,14 @@
 import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
-import FormData from 'form-data';
 import fetch from 'node-fetch';
+import FormData from 'form-data';
+import { pathToFileURL } from "url";
+
 
 class AppVersionUploader {
   constructor() {
-    this.apiUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
+    this.apiUrl = 'http://localhost:3000';
     this.adminKey = process.env.ADMIN_KEY;
     this.sourceDirectory = process.env.SOURCE_DIRECTORY;
   }
@@ -24,11 +26,23 @@ class AppVersionUploader {
     }
 
     const form = new FormData();
+    const apkStats = fs.statSync(apkPath);
+    const folderStats = fs.statSync(folderZipPath); 
     form.append(process.env.DB_VERSION_COLUMN_1, versionName);
     form.append(process.env.DB_VERSION_COLUMN_2, versionCode);
+    form.append(process.env.DB_VERSION_COLUMN_5, apkStats.size);   // tamaño en bytes
+    form.append(process.env.DB_VERSION_COLUMN_6, folderStats.size);
     form.append(process.env.DB_VERSION_COLUMN_7, releaseNotes);
-    form.append(process.env.DB_VERSION_COLUMN_3, fs.createReadStream(apkPath));
-    form.append(process.env.DB_VERSION_COLUMN_4, fs.createReadStream(folderZipPath));
+    form.append("apk_file", fs.createReadStream(apkPath), {
+      filename: path.basename(apkPath),
+      contentType: "application/vnd.android.package-archive"
+    });
+
+    form.append("folder_file", fs.createReadStream(folderZipPath), {
+      filename: path.basename(folderZipPath),
+      contentType: "application/zip"
+    });
+    console.log('📤 FormData preparado, enviando al servidor...');
 
     const response = await fetch(`${this.apiUrl}/api/admin/upload-version`, {
       method: 'POST',
@@ -50,6 +64,9 @@ class AppVersionUploader {
   async scanForNewVersion() {
     try {
       const files = fs.readdirSync(this.sourceDirectory);
+      console.log(this.sourceDirectory);
+      console.log("Archivos encontrados en directorio:", files);
+
 
       // Buscar APK
       const apkFiles = files.filter(file => file.endsWith('.apk'));
@@ -147,7 +164,7 @@ class AppVersionUploader {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const uploader = new AppVersionUploader();
   uploader.run();
 }

@@ -133,7 +133,7 @@ const AppDistributionPage: React.FC = () => {
 
       const { download_url } = await res.json();
 
-      // Launch real download
+      // Descarga real
       const link = document.createElement("a");
       link.href = download_url;
       link.download =
@@ -156,12 +156,12 @@ const AppDistributionPage: React.FC = () => {
     }
   };
 
-  // Show loading screen on initial load
+  // Mostrar carga al inicio
   if (initialLoading) {
     return <Loading />;
   }
 
-  // Show authentication form if not authenticated
+  // Mostrar autenticación si no se ha autenticado o si el token expiró
   if (!isAuthenticated) {
     return (
       <AuthForm
@@ -172,7 +172,7 @@ const AppDistributionPage: React.FC = () => {
     );
   }
 
-  // Show loading if app version is not loaded yet
+  // Cargando
   if (!appVersion) {
     return <Loading />;
   }
@@ -182,15 +182,16 @@ const AppDistributionPage: React.FC = () => {
       <Header onLogout={handleLogout} />
 
       <main className="gradient-bg max-w-7xl mx-auto px-4 py-8 space-y-8">
-        {/* Version Information */}
+        {/* Información  de la versión */}
         <VersionInfo appVersion={appVersion} />
 
-        {/* Download Section */}
+        {/* Sección de descarga */}
         <div className="grid lg:grid-cols-2 gap-8">
           <DownloadCard
             type="apk"
             title="Aplicación APK"
-            description="Archivo de instalación de la aplicación para Android. Incluye todas las funcionalidades principales y está optimizada para el mejor rendimiento."
+            description="Archivo de instalación de la aplicación para Android. 
+            IMPORTANTE: este archivo solo se descarga e instala una vez, la actualización se hace a través de los archivos adicionales"
             fileSize={appVersion.apk_size}
             status={downloadStatus.apk}
             onDownload={() => handleDownload("apk")}
@@ -202,7 +203,7 @@ const AppDistributionPage: React.FC = () => {
           <DownloadCard
             type="zip"
             title="Archivos Adicionales"
-            description="Carpeta con archivos de configuración, recursos adicionales, documentación y herramientas de desarrollo complementarias."
+            description="Carpeta con archivos de actualización, ubicación de las suertes y madurantes."
             fileSize={appVersion.folder_size}
             status={downloadStatus.folder}
             onDownload={() => handleDownload("folder")}

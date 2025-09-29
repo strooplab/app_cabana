@@ -1,24 +1,25 @@
 "use client";
 import React, { useState } from "react";
-import { Shield, Eye, EyeOff } from "lucide-react";
+import { Shield, Eye, EyeOff } from "lucide-react"; // Iconos
 
-interface AuthFormProps {
+interface AuthFormProps { // Parámetros establecidos desde la página principal
   onAuth: (password: string) => Promise<void>;
   loading: boolean;
   error: string;
 }
 
 const AuthForm: React.FC<AuthFormProps> = ({ onAuth, loading, error }) => {
-  const [password, setPassword] = useState<string>("");
+  const [password, setPassword] = useState<string>(""); // Inicialización de las variables
   const [showPassword, setShowPassword] = useState<boolean>(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.trim()) {
+    if (password.trim()) { // Verificación de la contraseña
       await onAuth(password);
     }
   };
 
+  // Frontend AuthForm
   return (
     <div className="min-h-screen gradient-bg flex items-center justify-center p-4">
       <div className="w-full max-w-md animate-fadeInUp">
@@ -95,7 +96,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onAuth, loading, error }) => {
               >
                 {loading ? (
                   <>
-                    <div className="spinner"></div>
+                    <div className="spinner"></div> {/* Spinner de carga */}
                     <span>Verificando...</span>
                   </>
                 ) : (

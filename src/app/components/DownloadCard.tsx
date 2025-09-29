@@ -223,7 +223,6 @@ const DownloadCard: React.FC<DownloadCardProps> = ({
           <div className="mt-4 pt-4 border-t border-yellow/30">
             <div className="flex justify-between items-center text-xs text-dark/50 font-medium">
               <span>Descarga directa</span>
-              <span>• Conexión segura</span>
             </div>
           </div>
         )}

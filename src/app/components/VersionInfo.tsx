@@ -1,8 +1,8 @@
 "use client";
 import React from "react";
-import { Calendar, Info, Tag, Code, Clock, FileText } from "lucide-react";
+import { Calendar, Info, Tag, Code, Clock, FileText } from "lucide-react"; // Iconos VersionInfo
 
-interface AppVersion {
+interface AppVersion { // Parámetros establecidos desde la página principal
   id: number;
   version_name: string;
   version_code: number;
@@ -14,13 +14,13 @@ interface AppVersion {
   created_at: string;
 }
 
-interface VersionInfoProps {
+interface VersionInfoProps { // Inicialización de las variables
   appVersion: AppVersion;
 }
 
 const VersionInfo: React.FC<VersionInfoProps> = ({ appVersion }) => {
   const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString("es-ES", {
+    return new Date(dateString).toLocaleDateString("es-ES", { // Formato de fecha
       year: "numeric",
       month: "long",
       day: "numeric",
@@ -29,10 +29,11 @@ const VersionInfo: React.FC<VersionInfoProps> = ({ appVersion }) => {
     });
   };
 
-  const getTimeAgo = (dateString: string): string => {
+  const getTimeAgo = (dateString: string): string => { 
+  // Aquí se define como se muestra cuando fue la ultima actualización en función del tiempo
     const now = new Date();
     const releaseDate = new Date(dateString);
-    const diffInHours = Math.floor((now.getTime() - releaseDate.getTime()) / (1000 * 60 * 60));
+    const diffInHours = Math.floor((now.getTime() - releaseDate.getTime()) / (1000 * 60 * 60)); // Conversión de tiempo a horas
     
     if (diffInHours < 1) return "Hace menos de una hora";
     if (diffInHours < 24) return `Hace ${diffInHours} horas`;
@@ -41,7 +42,7 @@ const VersionInfo: React.FC<VersionInfoProps> = ({ appVersion }) => {
     if (diffInDays === 1) return "Hace 1 día";
     if (diffInDays < 30) return `Hace ${diffInDays} días`;
     
-    return "Hace más de un mes";
+    return "Hace más de un mes"; // en caso de que la diferencia sea de más de 30 dias
   };
 
   return (
@@ -87,7 +88,7 @@ const VersionInfo: React.FC<VersionInfoProps> = ({ appVersion }) => {
             <div className="text-center lg:text-left">
               <div className="gradient-bg relative inline-flex items-center justify-center w-24 h-24 rounded-3xl mb-4 shadow-lg border-2 border-yellow/50">
                 <span className="text-3xl font-bold text-dark">
-                  {appVersion.version_name}
+                  v{appVersion.version_name}
                 </span>
                 <div className="absolute -bottom-2 -right-2 bg-dark rounded-full p-2 shadow-lg border-2 border-cream">
                   <Code className="h-4 w-4 text-cream" />

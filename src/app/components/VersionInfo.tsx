@@ -66,7 +66,7 @@ const VersionInfo: React.FC<VersionInfoProps> = ({ appVersion }) => {
             </div>
           </div>
           
-          <div className="text-right">
+          <div className="text-right flex items-center justify-center">
             <div className="gradient-bg backdrop-blur-sm rounded-lg px-3 py-2 border border-white/20 mr-6">
               <div className="text-dark font-bold text-lg">
                 v{appVersion.version_name}

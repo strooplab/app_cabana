@@ -3,9 +3,8 @@ import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 import fetch from 'node-fetch';
-import FormData from 'form-data';
 import { pathToFileURL } from "url";
-
+import ApkReader from "adbkit-apkreader";
 
 class AppVersionUploader {
   constructor() {
@@ -14,51 +13,65 @@ class AppVersionUploader {
     this.sourceDirectory = process.env.SOURCE_DIRECTORY;
   }
 
+  async uploadToR2(filePath, key) {
+    const file = fs.readFileSync(filePath);
+    const res = await fetch("http://localhost:3000/api/admin/get-upload-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fileName: key, contentType: "application/octet-stream" }),
+    }); 
+    const { uploadUrl } = await res.json();
+
+    const upload = await fetch(uploadUrl, {
+      method: "PUT",
+      body: file,
+      headers: { "Content-Type": "application/octet-stream" },
+    });
+
+    if (!upload.ok) throw new Error("Error subiendo a R2");
+    console.log(`✅ Subida completa: ${key}`);
+    return uploadUrl.split("?")[0]; // URL final sin query
+  }
+  
+
   async uploadVersion(versionData) {
-    const { versionName, versionCode, releaseNotes, apkPath, folderZipPath } = versionData;
+    const apkKey = `releases/${versionData.versionName}/${versionData.apkFile}`;
+    const zipKey = `releases/${versionData.versionName}/${versionData.folderFile}`;
+    const manualKey = `releases/${versionData.versionName}/manuals/${versionData.manualFile}`;
 
-    if (!fs.existsSync(apkPath)) {
-      throw new Error(`APK file not found: ${apkPath}`);
-    }
-
-    if (!fs.existsSync(folderZipPath)) {
-      throw new Error(`Zip file not found: ${folderZipPath}`);
-    }
-
-    const form = new FormData();
-    const apkStats = fs.statSync(apkPath);
-    const folderStats = fs.statSync(folderZipPath); 
-    form.append(process.env.DB_VERSION_COLUMN_1, versionName);
-    form.append(process.env.DB_VERSION_COLUMN_2, versionCode);
-    form.append(process.env.DB_VERSION_COLUMN_5, apkStats.size);   // tamaño en bytes
-    form.append(process.env.DB_VERSION_COLUMN_6, folderStats.size);
-    form.append(process.env.DB_VERSION_COLUMN_7, releaseNotes);
-    form.append("apk_file", fs.createReadStream(apkPath), {
-      filename: path.basename(apkPath),
-      contentType: "application/vnd.android.package-archive"
-    });
-
-    form.append("folder_file", fs.createReadStream(folderZipPath), {
-      filename: path.basename(folderZipPath),
-      contentType: "application/zip"
-    });
-    console.log('📤 FormData preparado, enviando al servidor...');
+    const apkUrl = await this.uploadToR2(versionData.apkPath, apkKey);
+    const folderUrl = await this.uploadToR2(versionData.folderZipPath, zipKey);
+    const manualUrl = await this.uploadToR2(versionData.manualPath, manualKey);
 
     const response = await fetch(`${this.apiUrl}/api/admin/upload-version`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'X-Admin-Key': this.adminKey,
-        ...form.getHeaders()
+        "X-Admin-Key": this.adminKey,
+        "Content-Type": "application/json",
       },
-      body: form
+      body: JSON.stringify({
+        versionName: versionData.versionName,
+        versionCode: versionData.versionCode,
+        releaseNotes: versionData.releaseNotes,
+        apkFile: versionData.apkFile,
+        folderFile: versionData.folderFile,
+        manualFile: versionData.manualFile,
+        apkSize: fs.statSync(versionData.apkPath).size,
+        folderSize: fs.statSync(versionData.folderZipPath).size,
+        manualSize: fs.statSync(versionData.manualPath).size,
+      }),
     });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Upload failed: ${response.status} ${error}`);
-    }
+    return response.json();
+  }
 
-    return await response.json();
+  async getNextVersionCode() {
+    const res = await fetch(`${this.apiUrl}/api/versions`);
+    const versions = await res.json();
+    if (!versions || versions.length === 0) return 1;
+
+    const maxCode = Math.max(...versions.map(v => v.version_code));
+    return maxCode + 1;
   }
 
   async scanForNewVersion() {
@@ -82,6 +95,12 @@ class AppVersionUploader {
         return null;
       }
 
+      const manualFile = files.find(file => file.endsWith('.pdf'));
+      if (!manualFile) {
+        console.log('No pdf found');
+        return null;
+      }
+
       // Último APK por fecha
       const latestApk = apkFiles
         .map(file => ({
@@ -92,11 +111,21 @@ class AppVersionUploader {
         .sort((a, b) => b.mtime - a.mtime)[0];
 
       const folderZipPath = path.join(this.sourceDirectory, folderZip);
+      const manualPath = path.join(this.sourceDirectory, manualFile)
+      async function getApkVersion(apkPath) {
+        const reader = await ApkReader.open(apkPath); 
+        const manifest = await reader.readManifest();
+        return manifest.versionName;
+      }
 
       // Extraer versión del nombre del APK
-      const versionMatch = latestApk.name.match(/v?(\d+\.\d+\.\d+)/);
-      const versionName = versionMatch ? versionMatch[1] : '1.0.0';
+      const versionName = await getApkVersion(latestApk.path);
       const versionCode = this.generateVersionCode(versionName);
+      if (!Number.isFinite(versionCode) || versionCode <= 0) {
+        versionCode = await this.getNextVersionCode(); // consulta la API al backend
+      }
+      console.log("Asignando versionCode:", versionCode);
+
 
       return {
         versionName,
@@ -105,7 +134,9 @@ class AppVersionUploader {
         apkPath: latestApk.path,
         folderZipPath,
         apkFile: latestApk.name,
-        folderFile: folderZip
+        folderFile: folderZip,
+        manualPath,
+        manualFile: manualFile
       };
 
     } catch (error) {
@@ -115,9 +146,16 @@ class AppVersionUploader {
   }
 
   generateVersionCode(versionName) {
-    const parts = versionName.split('.').map(Number);
+    if (!versionName || typeof versionName !== 'string') return NaN;
+    const parts = versionName.split('.').map(s => {
+      const n = parseInt(s, 10);
+      return Number.isFinite(n) ? n : 0;
+    });
+    // asegurar 3 segmentos
+    while (parts.length < 3) parts.push(0);
     return parts[0] * 10000 + parts[1] * 100 + parts[2];
   }
+
 
   generateReleaseNotes(fileName) {
     const date = new Date().toLocaleDateString('es-ES');
@@ -144,6 +182,7 @@ class AppVersionUploader {
       console.log(`📱 Nueva versión encontrada: ${newVersion.versionName}`);
       console.log(`📦 APK: ${newVersion.apkFile}`);
       console.log(`📁 Carpeta ZIP: ${newVersion.folderFile}`);
+      console.log(`    Manual PDF: ${newVersion.manualFile}`);
 
       const exists = await this.checkIfVersionExists(newVersion.versionName);
       if (exists) {

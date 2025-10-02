@@ -10,9 +10,10 @@ import {
   HardDrive,
   Shield,
   Zap,
+  Image,
 } from "lucide-react";
 
-type DownloadType = "apk" | "zip" | "folder";
+type DownloadType = "apk" | "zip" | "manual";
 type DownloadStatus = "downloading" | "completed" | "error" | null;
 
 interface DownloadCardProps {
@@ -99,14 +100,14 @@ const DownloadCard: React.FC<DownloadCardProps> = ({
     }
     return [
       { icon: FileText, text: "Documentación incluida", color: "text-dark" },
-      { icon: FolderOpen, text: "Archivos organizados", color: "text-dark" },
+      { icon: Image, text: "Tutorial con imágenes", color: "text-dark" },
     ];
   };
 
   const defaultIcon = type === "apk" ? <Smartphone className="h-6 w-6 text-dark" /> : <FolderOpen className="h-6 w-6 text-dark" />;
 
   return (
-    <div className="card hover-lift animate-slideInRight">
+    <div className="card hover-lift animate-slideInRight flex flex-col h-full">
       {/* Header */}
       <div className={`bg-gradient-to-r ${headerGradient} px-6 py-6 relative overflow-hidden`}>
         <div className="absolute inset-0 bg-dark/10"></div>
@@ -134,98 +135,87 @@ const DownloadCard: React.FC<DownloadCardProps> = ({
         </div>
       </div>
 
-      {/* Content */}
-      <div className="p-6 bg-cream/20">
-        {/* Description */}
-        <div className="mb-6">
-          <div className="flex items-start">
-            <FileText className="h-4 w-4 text-dark/60 mr-3 mt-1 flex-shrink-0" />
-            <p className="text-dark/80 text-sm leading-relaxed font-medium">{description}</p>
-          </div>
-        </div>
-
-        {/* Features */}
-        <div className="mb-6">
-          <div className="grid grid-cols-2 gap-3">
-            {getCardFeatures().map((feature, index) => (
-              <div key={index} className="flex items-center text-xs font-medium">
-                <feature.icon className={`h-3 w-3 mr-2 ${feature.color}`} />
-                <span className="text-dark/70">{feature.text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Progress bar for downloading */}
-        {status === "downloading" && (
+      {/* Content  */}
+      <div className="p-6 bg-cream/20 flex flex-col flex-grow">
+        {/* Contenido principal */}
+        <div className="flex-grow">
           <div className="mb-6">
-            <div className="bg-yellow/30 rounded-full h-2 overflow-hidden">
-              <div className="bg-gradient-to-r from-yellow to-orange h-full rounded-full animate-pulse-slow"></div>
+            <div className="flex items-start">
+              <FileText className="h-4 w-4 text-dark/60 mr-3 mt-1 flex-shrink-0" />
+              <p className="text-dark/80 text-sm leading-relaxed font-medium">{description}</p>
             </div>
-            <div className="flex justify-between items-center mt-2">
-              <p className="text-xs text-dark/60 font-medium">
-                Preparando descarga...
-              </p>
-              <div className="flex space-x-1">
-                <div className="w-1 h-1 bg-yellow rounded-full animate-bounce"></div>
-                <div className="w-1 h-1 bg-orange rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                <div className="w-1 h-1 bg-dark rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+          </div>
+
+          <div className="mb-6">
+            <div className="grid grid-cols-2 gap-3">
+              {getCardFeatures().map((feature, index) => (
+                <div key={index} className="flex items-center text-xs font-medium">
+                  <feature.icon className={`h-3 w-3 mr-2 ${feature.color}`} />
+                  <span className="text-dark/70">{feature.text}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {status === "downloading" && (
+            <div className="mb-6">
+              <div className="bg-yellow/30 rounded-full h-2 overflow-hidden">
+                <div className="bg-gradient-to-r from-yellow to-orange h-full rounded-full animate-pulse-slow"></div>
+              </div>
+              <div className="flex justify-between items-center mt-2">
+                <p className="text-xs text-dark/60 font-medium">Preparando descarga...</p>
+                <div className="flex space-x-1">
+                  <div className="w-1 h-1 bg-yellow rounded-full animate-bounce"></div>
+                  <div className="w-1 h-1 bg-orange rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-1 h-1 bg-dark rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Success message */}
-        {status === "completed" && (
-          <div className="mb-6 p-4 bg-green-100 border-l-4 border-green-600 rounded-r-lg">
-            <div className="flex items-center">
-              <CheckCircle className="h-5 w-5 text-green-700 mr-3" />
-              <div>
-                <p className="text-green-800 text-sm font-semibold">
-                  Descarga completada
-                </p>
-                <p className="text-green-700 text-xs mt-1">
-                  El archivo se ha descargado correctamente
-                </p>
+          {status === "completed" && (
+            <div className="mb-6 p-4 bg-green-100 border-l-4 border-green-600 rounded-r-lg">
+              <div className="flex items-center">
+                <CheckCircle className="h-5 w-5 text-green-700 mr-3" />
+                <div>
+                  <p className="text-green-800 text-sm font-semibold">Descarga completada</p>
+                  <p className="text-green-700 text-xs mt-1">El archivo se ha descargado correctamente</p>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Error message */}
-        {status === "error" && (
-          <div className="mb-6 p-4 bg-red-100 border-l-4 border-red-600 rounded-r-lg">
-            <div className="flex items-center">
-              <AlertCircle className="h-5 w-5 text-red-700 mr-3" />
-              <div>
-                <p className="text-red-800 text-sm font-semibold">
-                  Error en la descarga
-                </p>
-                <p className="text-red-700 text-xs mt-1">
-                  No se pudo descargar el archivo. Intenta nuevamente.
-                </p>
+          {status === "error" && (
+            <div className="mb-6 p-4 bg-red-100 border-l-4 border-red-600 rounded-r-lg">
+              <div className="flex items-center">
+                <AlertCircle className="h-5 w-5 text-red-700 mr-3" />
+                <div>
+                  <p className="text-red-800 text-sm font-semibold">Error en la descarga</p>
+                  <p className="text-red-700 text-xs mt-1">No se pudo descargar el archivo. Intenta nuevamente.</p>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Download Button */}
-        <button
-          onClick={onDownload}
-          disabled={status === "downloading"}
-          className={`w-full ${getButtonClass()} flex items-center justify-center space-x-3 py-4 text-base font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg disabled:transform-none disabled:opacity-50`}
-        >
-          {getButtonContent()}
-        </button>
+        {/* Botón de descarga */}
+        <div className="mt-auto pt-4">
+          <button
+            onClick={onDownload}
+            disabled={status === "downloading"}
+            className={`w-full ${getButtonClass()} flex items-center justify-center space-x-3 py-4 text-base font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg disabled:transform-none disabled:opacity-50`}
+          >
+            {getButtonContent()}
+          </button>
 
-        {/* Additional info */}
-        {status === null && (
-          <div className="mt-4 pt-4 border-t border-yellow/30">
-            <div className="flex justify-between items-center text-xs text-dark/50 font-medium">
-              <span>Descarga directa</span>
+          {status === null && (
+            <div className="mt-4 pt-4 border-t border-yellow/30">
+              <div className="flex justify-between items-center text-xs text-dark/50 font-medium">
+                <span>Descarga directa</span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

@@ -19,6 +19,7 @@
     "@aws-sdk/s3-request-presigner": "^3.892.0",
     "@supabase/supabase-js": "^2.57.4",
     "adbkit-apkreader": "^3.2.0",
+    "apk-parser3": "^0.1.7",
     "aws-sdk": "^2.1692.0",
     "bcryptjs": "^3.0.2",
     "formidable": "^3.5.4",

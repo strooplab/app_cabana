@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Smartphone, FolderOpen } from "lucide-react";
+import { Smartphone, FolderOpen, BookText } from "lucide-react";
+import 'dotenv/config';
 
 // Components
 import AuthForm from "./components/AuthForm";
@@ -19,9 +20,11 @@ interface AppVersion {
   folder_size: number;
   release_notes: string;
   created_at: string;
+  manual_url: string;
+  manual_size: number;
 }
 
-type DownloadType = "apk" | "zip" | "folder";
+type DownloadType = "apk" | "zip" | "manual";
 type DownloadStatus = "downloading" | "completed" | "error" | null;
 
 const AppDistributionPage: React.FC = () => {
@@ -32,7 +35,7 @@ const AppDistributionPage: React.FC = () => {
   const [appVersion, setAppVersion] = useState<AppVersion | null>(null);
   const [downloadStatus, setDownloadStatus] = useState<
     Record<DownloadType, DownloadStatus>
-  >({ apk: null, folder: null, zip: null });
+  >({ apk: null, zip: null , manual: null});
 
   // Fetch latest version from backend
   const fetchLatestVersion = async () => {
@@ -186,7 +189,19 @@ const AppDistributionPage: React.FC = () => {
         <VersionInfo appVersion={appVersion} />
 
         {/* Sección de descarga */}
-        <div className="grid lg:grid-cols-2 gap-8">
+        <div className="grid lg:grid-cols-3 gap-8 items-stretch">
+          <DownloadCard
+            type="manual"
+            title="Manual"
+            description="Manual de instalación y actualización."
+            fileSize={appVersion.manual_size}
+            status={downloadStatus.manual}
+            onDownload={() => handleDownload("manual")}
+            icon={<BookText className="h-6 w-6" />}
+            headerGradient="from-yellow-200 to-amber-600"
+            buttonStyle="btn-primary"
+          />
+
           <DownloadCard
             type="apk"
             title="Aplicación APK"
@@ -205,8 +220,8 @@ const AppDistributionPage: React.FC = () => {
             title="Archivos Adicionales"
             description="Carpeta con archivos de actualización, ubicación de las suertes y madurantes."
             fileSize={appVersion.folder_size}
-            status={downloadStatus.folder}
-            onDownload={() => handleDownload("folder")}
+            status={downloadStatus.zip}
+            onDownload={() => handleDownload("zip")}
             icon={<FolderOpen className="h-6 w-6" />}
             headerGradient="from-yellow-200 to-amber-600"
             buttonStyle="btn-primary"

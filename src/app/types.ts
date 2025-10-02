@@ -10,9 +10,11 @@ export interface AppVersion {
   folder_size: number;
   release_notes: string;
   created_at: string;
+  manual_url: string;
+  manual_size: number;
 }
 
-export type DownloadType = "apk" | "zip" | "folder";
+export type DownloadType = "apk" | "zip" | "manual";
 export type DownloadStatus = "downloading" | "completed" | "error" | null;
 
 export interface AuthResponse {

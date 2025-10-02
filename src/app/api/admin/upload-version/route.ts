@@ -6,10 +6,8 @@ import {
 } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import ApkReader from "adbkit-apkreader";
-import fs from "fs";
-import path from "path";
-import os from "os";
 import pool from "@/lib/db";
+import path from "path";
 
 export const runtime = "nodejs";
 
@@ -23,7 +21,7 @@ const s3 = new S3Client({
 });
 
 async function extractApkInfoFromFilepath(filePath: string) {
-  const reader = await ApkReader.open(filePath);
+  const reader = await ApkReader.open(filePath); 
   const manifest = await reader.readManifest();
   return {
     versionName: manifest.versionName || "1.0.0",
@@ -46,143 +44,119 @@ async function deleteExistingZip(zipKey: string) {
   }
 }
 
+async function uploadToR2(file: File, key: string) {
+  const arr = await file.arrayBuffer();
+  const body = Buffer.from(arr);
+  
+
+  const upload = new Upload({
+    client: s3,
+    params: {
+      Bucket: process.env.R2_BUCKET!,
+      Key: key,
+      Body: body,
+      ContentType: file.type || "application/zip",
+    },
+    leavePartsOnError: false,
+  });
+
+  upload.on("httpUploadProgress", (progress) => {
+    console.log("Progreso de subida:", progress);
+  });
+
+  await upload.done();
+
+  // construir URL final en formato path-style
+  return `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${process.env.R2_BUCKET}/${encodeURIComponent(key)}`;
+}
+
 export async function POST(req: Request) {
   try {
-    const formData = await req.formData();
-    const folderFile = formData.get("folder_file") as File | null;
-    const replaceZipFlag = formData.get("replace_zip")?.toString() === "true";
-    const apkFile = formData.get("apk_file") as File | null;
+    const body = await req.json();
+    console.log("Request body:", body);
+    const {
+      versionName: clientVersionName,
+      releaseNotes,
+      apkFile,
+      folderFile,
+      manualFile,
+      apkUrl,
+      folderUrl,
+      manualUrl,
+      apkSize,
+      folderSize,
+      manualSize
+    } = body;
 
-    if (replaceZipFlag && !folderFile) {
-      return NextResponse.json(
-        { message: "Missing zip file when replace_zip = true" },
-        { status: 400 }
-      );
+    const apkName = apkFile || (apkUrl ? path.basename(apkUrl) : null);
+    const folderName = folderFile || (folderUrl ? path.basename(folderUrl) : null);
+    const manualName = manualFile || (manualUrl ? path.basename(manualUrl) : null);
+    if (!apkName || !folderName) {
+      console.error("Faltan apkName o folderName:", { apkName, folderName });
+      return NextResponse.json({ error: "Missing apk or folder filename" }, { status: 400 });
     }
 
     const version_table = process.env.DB_VERSIONS_TABLE!;
-    const columns = Array.from({ length: 9 }, (_, i) =>
-      process.env[`DB_VERSION_COLUMN_${i + 1}`]
-    );
-    if (columns.some((c) => !c)) {
-      throw new Error("Faltan columnas definidas");
-    }
+    const columns = Array.from({ length: 11 }, (_, i) =>
+      process.env[`DB_VERSION_COLUMN_${i + 1}`] || ""
+    ) as string[];
 
-    let versionName: string;
+    const finalVersionName = clientVersionName || "1.0.0";
+
     let versionCode: number;
-
-    if (apkFile) {
-      const arr = await apkFile.arrayBuffer();
-      const buf = Buffer.from(arr);
-      const tmpDir = os.tmpdir();
-      const tmpFileName = `${Date.now()}-${apkFile.name}`;
-      const tmpFilePath = path.join(tmpDir, tmpFileName);
-      fs.writeFileSync(tmpFilePath, buf);
-      const info = await extractApkInfoFromFilepath(tmpFilePath);
-      versionName = info.versionName;
-      versionCode = info.versionCode;
-      fs.unlinkSync(tmpFilePath);
+    const lastActive = await pool.query(
+      `SELECT ${columns[1]} FROM ${version_table} ORDER BY ${columns[8]} DESC LIMIT 1`
+    );
+    if (lastActive.rows.length > 0) {
+      // columns[1] es version_code, columns[7] es is_active, columns[8] es created_at (según tus env)
+      versionCode = Number(lastActive.rows[0][columns[1]]) + 1;
     } else {
-      const res = await pool.query(
-        `SELECT ${columns[0]}, ${columns[1]} FROM ${version_table} WHERE ${columns[7]} = true LIMIT 1`
+      // fallback: usar MAX(version_code)
+      const maxRes = await pool.query(
+        `SELECT MAX(${columns[1]}) AS max_code FROM ${version_table}`
       );
-      if (res.rows.length === 0) {
-        return NextResponse.json(
-          { message: "No active version found" },
-          { status: 404 }
-        );
-      }
-      versionName = res.rows[0][columns[0]];
-      versionCode = res.rows[0][columns[1]];
+      versionCode = (Number(maxRes.rows[0].max_code) || 0) + 1;
     }
 
-    let newZipUrl: string | null = null;
-    let newZipName: string | null = null;
-    let folderSize: number | null = null;
-
-    if (replaceZipFlag && folderFile) {
-      if (!folderFile.name){
-        console.warn("folderFile.name no definido")
-      }
-      newZipName = folderFile.name;
-      folderSize = folderFile.size;
-      const zipKey = `releases/${versionName}/${newZipName}`;
-
-      // eliminar viejo
-      await deleteExistingZip(zipKey);
-
-      // Usa Upload multipart
-      const upload = new Upload({
-        client: s3,
-        params: {
-          Bucket: process.env.R2_BUCKET!,
-          Key: zipKey,
-          Body: folderFile,  // File es soportado por Upload según librería :contentReference[oaicite:1]{index=1}
-          ContentType: folderFile.type || "application/zip",
-        },
-        leavePartsOnError: false,
-      });
-
-      upload.on("httpUploadProgress", (progress) => {
-        console.log("Progress:", progress);
-      });
-
-      await upload.done();
-
-      newZipUrl = `https://${process.env.R2_BUCKET}.${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${encodeURIComponent(
-        zipKey
-      )}`;
-    }else{
-      console.log("No se reemplazará ZIP - replaceZipFlag:", replaceZipFlag, "folderFile:", folderFile);
-    }
+    console.log("Servidor: versionName=", finalVersionName, "versionCode=", versionCode);
 
     // Desactivar versiones anteriores
     await pool.query(
       `UPDATE ${version_table} SET ${columns[7]} = false WHERE ${columns[7]} = true`
     );
 
-    // Obtener datos APK previos si no cambió
-    let apkName = "";
-    let apkSize: number | null = null;
-    if (!apkFile) {
-      const prev = await pool.query(
-        `SELECT ${columns[2]}, ${columns[4]} FROM ${version_table} WHERE ${columns[7]} = false ORDER BY ${columns[8]} DESC LIMIT 1`
-      );
-      if (prev.rows.length > 0) {
-        const prevUrl = prev.rows[0][columns[2]];
-        apkName = prevUrl ? path.basename(prevUrl) : "";
-        apkSize = prev.rows[0][columns[4]];
-      }
-    } else {
-      apkName = apkFile.name;
-      apkSize = apkFile.size;
-    }
-
+    // Insertar nueva versión
     const result = await pool.query(
       `INSERT INTO ${version_table} (${columns.join(", ")})
-       VALUES ($1,$2,$3,$4,$5,$6,$7,true,NOW())
+       VALUES ($1,$2,$3,$4,$5,$6,$7,true,NOW(),$8,$9)
        RETURNING *`,
       [
-        versionName,
+        finalVersionName,
         versionCode,
         apkName,
-        newZipName ?? "ingenio_la_cabana.zip",
-        apkSize,
-        folderSize ?? 587181348,
-        formData.get("release_notes")?.toString() || "",
+        folderName,
+        apkSize ?? null,
+        folderSize ?? null,
+        releaseNotes ?? "",
+        manualName ?? null,
+        manualSize ?? null,
       ]
     );
 
-    return NextResponse.json({
-      message: "Zip reemplazado con éxito (multipart)",
-      version: result.rows[0],
-    });
+    
+    if (result.rows.length === 0) {
+      console.error("No se insertó ninguna fila");
+      return NextResponse.json({ error: "Insertion failed" }, { status: 500 });
+    }
+
+    console.log("Fila insertada", result.rows[0]); 
+
+    return NextResponse.json({ message: "Versión registrada", version: result.rows[0] });
+    
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     console.error("Error en upload-version:", err);
-    return NextResponse.json(
-      { message: "Internal server error", error: err.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+

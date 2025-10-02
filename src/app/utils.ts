@@ -88,10 +88,17 @@ export const download = {
   },
 
   getFilename: (type: DownloadType, version: AppVersion): string => {
-    return type === "apk"
-      ? `app-v${version.version_name}.apk`
-      : `app-files-v${version.version_name}.zip`;
+    switch (type) {
+      case "apk":
+        return `app-v${version.version_name}.apk`;
+      case "zip":
+      case "manual":
+        return `manual-v${version.version_name}.pdf`;
+      default:
+        return `download-v${version.version_name}`;
+    }
   }
+
 };
 
 // Utilidades de validación

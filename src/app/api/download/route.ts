@@ -7,7 +7,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 
-
+export const runtime = "nodejs";
 
 // 🔹 Cliente Cloudflare R2 (S3 compatible)
 const s3 = new S3Client({

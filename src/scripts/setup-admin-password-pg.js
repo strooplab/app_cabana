@@ -1,6 +1,6 @@
 // scripts/setup-admin-password-pg.js
 import bcrypt from 'bcryptjs';
-import pool from '../lib/db';
+import pool from '../lib/db.ts';
 import readline from 'readline';
 
 async function ask(question) {
